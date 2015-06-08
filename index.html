@@ -1,20 +1,124 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Metric</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+<meta charset="utf-8">
+<style>
 
-<div id="dashboard"></div>
+.chart rect {
+  fill: steelblue;
+}
 
-<div id="graph"></div>
+.chart text {
+  fill: white;
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
 
-<div id="edit-data"></div>
+</style>
+<svg class="chart"></svg>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="app.js">
+</script>
+<script>
 
-<div id="edit-graph"></div>
 
-</body>
-</html>
+var width = 960,
+    height = 500;
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var chart = d3.select(".chart")
+    .attr("width", width)
+    .attr("height", height);
+
+function get_data(){
+$.get("http://localhost:3000/logs/2", function(response){
+  console.log(response['charts']['bar'])
+  data = response['charts']['bar']
+  make_bar(data)
+});
+}
+
+
+function make_chart(data, chart)
+{
+  if(chart === 'bar'){
+    make_bar(data)
+  }
+  else if(chart === 'pie'){
+    make_pie(data)
+  }
+
+}
+
+function make_pie(data){
+  var outerRadius = height / 2;
+var innerRadius = 0;
+var arc = d3.svg.arc()
+        .innerRadius(innerRadius)
+        .outerRadius(outerRadius);
+
+var pie = d3.layout.pie();
+
+//Easy colors accessible via a 10-step ordinal scale
+var color = d3.scale.category10();
+
+//Create SVG element
+var svg = chart
+
+//Set up groups
+var arcs = chart.selectAll("g.arc")
+        .data(pie(data))
+        .enter()
+        .append("g")
+        .attr("class", "arc")
+        .attr("transform", "translate(" + outerRadius + "," + outerRadius + ")");
+
+//Draw arc paths
+arcs.append("path")
+    .attr("fill", function(d, i) {
+      return color(i);
+    })
+    .attr("d", arc);
+
+//Labels
+arcs.append("text")
+    .attr("transform", function(d) {
+      return "translate(" + arc.centroid(d) + ")";
+    })
+    .attr("text-anchor", "middle")
+    .text(function(d) {
+      return d.value;
+    });
+}
+get_data()
+
+function make_bar(data){
+  y.domain([0, d3.max(data, function(d) { return d; })]);
+
+  var barWidth = width / data.length;
+
+  var bar = chart.selectAll("g")
+      .data(data)
+    .enter().append("g")
+      .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; });
+
+  bar.append("rect")
+      .attr("y", function(d) { return y(d); })
+      .attr("height", function(d) { return height - y(d); })
+      .attr("width", barWidth - 1);
+
+  bar.append("text")
+      .attr("x", barWidth / 2)
+      .attr("y", function(d) { return y(d) + 3; })
+      .attr("dy", ".75em")
+      .text(function(d) { return d; });
+}
+
+function type(d) {
+  d = +d; // coerce to number
+  return d;
+
+}
+
+</script>
